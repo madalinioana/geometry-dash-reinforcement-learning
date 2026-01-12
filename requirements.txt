@@ -1,0 +1,17 @@
+# Core RL
+gymnasium>=0.29.0
+stable-baselines3>=2.2.0
+torch>=2.0.0
+numpy>=1.24.0
+
+# Game rendering
+pygame-ce>=2.5.0  # Folosim pygame-ce pentru compatibilitate Python 3.14+
+
+# Logging și vizualizare
+tensorboard>=2.15.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+pandas>=2.0.0
+
+# Utilities
+tqdm>=4.65.0

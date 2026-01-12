@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree /F \"c:\\\\Anul 3\\\\Reinforcement Learning\\\\Proiect Rl\\\\Rl-GeometryDash\")",
+      "Bash(wc:*)",
+      "Bash(dir:*)"
+    ]
+  }
+}

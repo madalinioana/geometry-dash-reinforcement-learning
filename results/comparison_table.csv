@@ -1,0 +1,5 @@
+Agent,Mean Score,Std Score,Max Score,Mean Reward,Mean Length
+Q-Learning,94.8,72.3,695,61.4,154
+SARSA,103.0,73.4,385,76.6,167
+DQN,606.1,206.5,1102,874.1,873
+PPO,125.5,78.6,453,126.1,202

@@ -1,0 +1,21 @@
+# Virtual environments
+venv/
+env/
+.venv/
+ENV/
+
+# Ignore site-packages inside virtualenvs
+*/Lib/site-packages/
+
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Editor directories
+.vscode/
+.idea/
+
+# Misc
+pip-log.txt
+.pytest_cache/
