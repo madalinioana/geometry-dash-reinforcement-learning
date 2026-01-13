@@ -1,42 +1,55 @@
-"""
-Reinforcement Learning Geometry Dash - Main Script
-"""
-
 import argparse
 import os
 import sys
-import pygame  # Necesită import pentru detectarea tastelor
-from datetime import datetime
+import pygame
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-# ATENȚIE: Import corect din folderul environment
-from environment.wrappers import FrameSkipWrapper, FrameStackWrapper, NormalizeObservation, RewardShapingWrapper
+from environment.wrappers import FrameStackWrapper, NormalizeObservation
 
 def ensure_directories():
-    dirs = ['results/models', 'results/logs', 'results/plots', 'results/experiments']
-    for d in dirs:
+    for d in ['results/models', 'results/logs', 'results/plots']:
         os.makedirs(d, exist_ok=True)
 
 def train_agent(agent_type):
-    if agent_type == 'dqn':
-        from training.train_dqn import train_dqn
-        print("\n" + "="*60)
-        print("TRAINING DQN AGENT (Precision Mode)")
-        print("="*60)
-        train_dqn()
-    elif agent_type == 'ppo':
-        from training.train_ppo import train_ppo
-        train_ppo()
-    elif agent_type == 'all':
-        train_agent('dqn')
-        train_agent('ppo')
+    if agent_type == 'all':
+        for a in ['q_learning', 'sarsa', 'dqn', 'ppo']:
+            train_agent(a)
+        return
+    
+    agents = {
+        'dqn': ('training.train_dqn', 'train_dqn'),
+        'ppo': ('training.train_ppo', 'train_ppo'),
+        'q_learning': ('training.train_q_learning', 'train_q_learning'),
+        'sarsa': ('training.train_sarsa', 'train_sarsa')
+    }
+    
+    if agent_type in agents:
+        module_name, func_name = agents[agent_type]
+        module = __import__(module_name, fromlist=[func_name])
+        getattr(module, func_name)()
     else:
-        print(f"Agent {agent_type} not implemented in this quick-fix.")
+        print(f"Agent {agent_type} not implemented yet.")
 
 def plot_results():
-    from analysis.plot_results import plot_training_curves
-    plot_training_curves()
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from analysis.statistics import load_training_data, generate_full_report
+    from analysis.visualizations import TrainingVisualizer
+    
+    agents = ['dqn', 'q_learning', 'sarsa', 'ppo']
+    agents_stats = [a for a in [load_training_data(name) for name in agents] if a]
+    
+    if not agents_stats:
+        print("No training data found")
+        return
+    
+    print(f"Generating plots for {len(agents_stats)} agents...")
+    generate_full_report(agents_stats, output_dir='results')
+    visualizer = TrainingVisualizer(output_dir='results/plots')
+    visualizer.generate_all_plots(agents_stats)
+    print("Plots saved in results/plots/")
+
 
 def demo_agent(agent_type):
     from environment import ImpossibleGameEnv
@@ -50,9 +63,7 @@ def demo_agent(agent_type):
     if agent_type == 'dqn':
         from agents.deep.dqn_agent import DQNAgent
         
-        print("Applying DQN Wrappers (Skip=2, Stack=4)...")
-        # FIX: Același skip ca la antrenament!
-        env = FrameSkipWrapper(env, skip=2) 
+        print("Applying DQN Wrappers (Stack=4, Normalize)...")
         env = FrameStackWrapper(env, n_frames=4)
         env = NormalizeObservation(env)
         
@@ -60,6 +71,18 @@ def demo_agent(agent_type):
         model_path = 'results/models/dqn_agent_best.pth'
         if not os.path.exists(model_path):
              model_path = 'results/models/dqn_agent.pth'
+
+    elif agent_type == 'q_learning':
+        from agents.tabular.q_learning_agent import QLearningAgent
+        print("Loading Q-Learning Agent (no wrappers needed)...")
+        agent = QLearningAgent(env.action_space, env.observation_space)
+        model_path = 'results/models/q_learning_agent.pkl'
+
+    elif agent_type == 'sarsa':
+        from agents.tabular.sarsa_agent import SARSAAgent
+        print("Loading SARSA Agent (no wrappers needed)...")
+        agent = SARSAAgent(env.action_space, env.observation_space)
+        model_path = 'results/models/sarsa_agent.pkl'
 
     elif agent_type == 'ppo':
         from agents.policy.ppo_agent import PPOAgent
@@ -78,8 +101,7 @@ def demo_agent(agent_type):
         return
 
     try:
-        if agent_type == 'ppo': agent.load(model_path)
-        else: agent.load(model_path)
+        agent.load(model_path)
         print(f"Loaded: {model_path}")
     except:
         print("Model not found. Train first.")
@@ -89,10 +111,7 @@ def demo_agent(agent_type):
         episodes = 0
         while True:
             obs_data = env.reset()
-            if agent_type == 'ppo': obs = obs_data
-            elif isinstance(obs_data, tuple): obs = obs_data[0]
-            else: obs = obs_data
-
+            obs = obs_data if agent_type == 'ppo' else (obs_data[0] if isinstance(obs_data, tuple) else obs_data)
             done = False
             total_reward = 0
             
@@ -101,19 +120,13 @@ def demo_agent(agent_type):
 
                 if agent_type == 'ppo':
                     obs, reward, done_array, info_array = env.step([action])
-                    done = done_array[0]
-                    reward = reward[0]
-                    info = info_array[0]
-                    env.render() 
+                    done, reward, info = done_array[0], reward[0], info_array[0]
                 else:
                     step_result = env.step(action)
-                    if len(step_result) == 5:
-                        obs, reward, terminated, truncated, info = step_result
-                        done = terminated or truncated
-                    else:
-                        obs, reward, done, info = step_result
-                    env.render()
-
+                    obs, reward, terminated, truncated, info = step_result if len(step_result) == 5 else (*step_result[:3], False, step_result[3])
+                    done = terminated or truncated if len(step_result) == 5 else step_result[2]
+                
+                env.render()
                 total_reward += reward
             
             episodes += 1
@@ -126,7 +139,6 @@ def demo_agent(agent_type):
         env.close()
 
 def play_game():
-    """Permite utilizatorului să joace manual."""
     from environment import ImpossibleGameEnv
     
     print("\n" + "="*60)
@@ -134,29 +146,22 @@ def play_game():
     print("Controls: SPACE, UP, or W to Jump")
     print("="*60)
 
-    # Pentru joc manual NU folosim wrappers (vrem 60 FPS fluid, nu frame skip)
     env = ImpossibleGameEnv(render_mode="human", max_steps=10000)
     env.reset()
 
     try:
         running = True
         while running:
-            # 1. Gestionare evenimente Pygame (inclusiv X de la fereastră)
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
+            if any(event.type == pygame.QUIT for event in pygame.event.get()):
+                running = False
+                continue
 
-            # 2. Input manual
             keys = pygame.key.get_pressed()
-            action = 0
-            if keys[pygame.K_SPACE] or keys[pygame.K_UP] or keys[pygame.K_w]:
-                action = 1
+            action = 1 if any([keys[pygame.K_SPACE], keys[pygame.K_UP], keys[pygame.K_w]]) else 0
             
-            # 3. Step
             obs, reward, terminated, truncated, info = env.step(action)
             env.render()
             
-            # 4. Reset la moarte
             if terminated or truncated:
                 print(f"CRASH! Score: {info.get('score', 0)}")
                 env.reset()
@@ -168,8 +173,8 @@ def play_game():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--train', type=str, help='Train agent (dqn, ppo)')
-    parser.add_argument('--demo', type=str, help='Demo agent (dqn, ppo)')
+    parser.add_argument('--train', type=str, help='Train agent (q_learning, sarsa, dqn, ppo, all)')
+    parser.add_argument('--demo', type=str, help='Demo agent (q_learning, sarsa, dqn, ppo)')
     parser.add_argument('--play', action='store_true', help='Play manually')
     parser.add_argument('--plots', action='store_true', help='Generate plots')
     args = parser.parse_args()

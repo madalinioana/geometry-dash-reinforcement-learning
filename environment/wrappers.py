@@ -3,7 +3,7 @@ import numpy as np
 from collections import deque
 
 class FrameSkipWrapper(gym.Wrapper):
-    def __init__(self, env, skip=2): # Skip redus la 2 pentru precizie Lidar
+    def __init__(self, env, skip=2):
         super().__init__(env)
         self.skip = skip
     
@@ -59,11 +59,7 @@ class RewardShapingWrapper(gym.Wrapper):
     def step(self, action):
         obs, reward, terminated, truncated, info = self.env.step(action)
         
-        # Reward suplimentar pentru supraviețuire (Lidar-ul încurajează asta)
         reward += 0.05
         
-        # Penalizare dacă sare când e deja în aer (spam protection)
-        # obs[2] este de obicei 'on_ground' în vectorul Lidar (index 2)
-        # Dar cu FrameStack e complicat de accesat direct, așa că ne bazăm pe env
         
         return obs, reward, terminated, truncated, info

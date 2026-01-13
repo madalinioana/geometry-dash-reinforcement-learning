@@ -4,17 +4,27 @@ env/
 .venv/
 ENV/
 
-# Ignore site-packages inside virtualenvs
-*/Lib/site-packages/
-
 # Byte-compiled / cache
 __pycache__/
 *.py[cod]
 *$py.class
 
+# Results and logs
+results/models/*.pth
+results/models/*.pkl
+results/models/*.zip
+results/logs/*.npy
+results/plots/*.png
+results/*.csv
+results/*.json
+
 # Editor directories
 .vscode/
 .idea/
+
+# OS files
+.DS_Store
+Thumbs.db
 
 # Misc
 pip-log.txt

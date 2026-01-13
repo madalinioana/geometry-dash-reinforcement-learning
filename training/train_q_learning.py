@@ -7,18 +7,16 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from environment import ImpossibleGameEnv
+from environment.geometry_dash_env import ImpossibleGameEnv
 from agents.tabular.q_learning_agent import QLearningAgent
 from training.config import Q_LEARNING_CONFIG
 
 
 def train_q_learning(config=Q_LEARNING_CONFIG, render=False):
     
-    # Create environment
     render_mode = "human" if render else None
     env = ImpossibleGameEnv(render_mode=render_mode, max_steps=config['max_steps'])
     
-    # Create agent
     agent = QLearningAgent(
         action_space=env.action_space,
         observation_space=env.observation_space,
@@ -30,16 +28,12 @@ def train_q_learning(config=Q_LEARNING_CONFIG, render=False):
         bins=config['bins']
     )
     
-    # Training metrics
     episode_rewards = []
-    episode_lengths = []
     episode_scores = []
     
-    # Training loop
     for episode in tqdm(range(config['episodes']), desc="Training Q-Learning"):
         obs, info = env.reset()
         episode_reward = 0
-        episode_length = 0
         done = False
         
         while not done:
@@ -47,34 +41,43 @@ def train_q_learning(config=Q_LEARNING_CONFIG, render=False):
             next_obs, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated
             
-            agent.update(obs, action, reward, next_obs, done)
+            lidar_types = obs[3:33]
+            on_ground = int(obs[2]) == 1
+            has_nearby_danger = any(lidar_types[i] == 2 for i in range(5))
+            has_mid_danger = any(lidar_types[i] == 2 for i in range(5, 10))
             
+            if action == 1 and on_ground:
+                if not has_nearby_danger and not has_mid_danger:
+                    reward -= 1.0
+                elif not has_nearby_danger and has_mid_danger:
+                    reward -= 0.3
+            elif action == 0 and on_ground and not has_nearby_danger:
+                reward += 0.1
+            
+            agent.update(obs, action, reward, next_obs, done)
             obs = next_obs
             episode_reward += reward
-            episode_length += 1
             
             if render:
                 env.render()
         
         episode_rewards.append(episode_reward)
-        episode_lengths.append(episode_length)
         episode_scores.append(info['score'])
         
         if (episode + 1) % 100 == 0:
             avg_reward = np.mean(episode_rewards[-100:])
             avg_score = np.mean(episode_scores[-100:])
-            print(f"Episode {episode+1}: Avg Reward = {avg_reward:.2f}, Avg Score = {avg_score:.0f}, Epsilon = {agent.epsilon:.3f}")
+            print(f"Episode {episode+1}: Reward={avg_reward:.1f}, Score={avg_score:.0f}, Eps={agent.epsilon:.3f}")
     
     env.close()
     
     os.makedirs('results/models', exist_ok=True)
     agent.save('results/models/q_learning_agent.pkl')
     
-    # Save metrics
     np.save('results/logs/q_learning_rewards.npy', episode_rewards)
     np.save('results/logs/q_learning_scores.npy', episode_scores)
     
-    print(f"Training complete! Saved to results/models/q_learning_agent.pkl")
+    print("Training complete")
     
     return episode_rewards, episode_scores
 
@@ -82,7 +85,6 @@ def train_q_learning(config=Q_LEARNING_CONFIG, render=False):
 if __name__ == "__main__":
     rewards, scores = train_q_learning(render=False)
     
-    # Plot results
     plt.figure(figsize=(12, 4))
     
     plt.subplot(1, 2, 1)

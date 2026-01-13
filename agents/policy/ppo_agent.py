@@ -3,16 +3,9 @@ from agents.base_agent import BaseAgent
 
 
 class PPOAgent(BaseAgent):
-    """Wrapper pentru Stable-Baselines3 PPO."""
     def __init__(self, env, **kwargs):
         super().__init__(env.action_space, env.observation_space)
-        
-        self.model = PPO(
-            "MlpPolicy",
-            env,
-            verbose=1,
-            **kwargs
-        )
+        self.model = PPO("MlpPolicy", env, verbose=1, **kwargs)
     
     def select_action(self, observation, training=True):
         action, _ = self.model.predict(observation, deterministic=not training)

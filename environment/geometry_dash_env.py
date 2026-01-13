@@ -5,11 +5,9 @@ import pygame
 import random
 import math
 
-# --- CONSTANTS & NEON PALETTE ---
 WIDTH, HEIGHT = 800, 600
 FPS = 60
 
-# Colors
 BG_TOP = (15, 15, 40)
 BG_BOTTOM = (40, 0, 60)
 GROUND_LINE = (0, 255, 240)
@@ -23,14 +21,12 @@ BLOCK_OUTLINE = (80, 150, 255)
 SAW_OUTLINE = (255, 0, 100)
 SAW_INNER = (100, 0, 40)
 
-# --- PHYSICS ---
 PLAYER_SIZE = 34
 GRAVITY = 1.2
 JUMP_FORCE = -20.0
 SCROLL_SPEED = 8.0 
 GROUND_HEIGHT = HEIGHT - 110
 
-# --- LIDAR CONFIG ---
 LIDAR_RANGE = 600       
 LIDAR_RES = 20          
 
@@ -64,7 +60,6 @@ class Player:
         self.vel_y += GRAVITY
         self.y += self.vel_y
         
-        # Ground collision
         if self.y >= GROUND_HEIGHT - PLAYER_SIZE:
             self.y = GROUND_HEIGHT - PLAYER_SIZE
             self.vel_y = 0
@@ -72,7 +67,6 @@ class Player:
             
         self.rect.y = int(self.y)
         
-        # Rotation visual
         if not self.on_ground: self.cube_rot -= 12
         else: self.cube_rot = round(self.cube_rot / 90) * 90
 
@@ -87,7 +81,7 @@ class Obstacle:
         self.type = obs_type
         self.y_offset = y_offset
         self.rotation = 0 
-        self.passed = False # Flag pentru reward system
+        self.passed = False
         
         if obs_type == "spike":
             self.width = 32; self.height = 36
@@ -165,11 +159,11 @@ class ObstacleGenerator:
             start_x = max(start_x, last.x + last.width + gap) 
 
         patterns = [
-            self.pat_simple_mix,    # 0
-            self.pat_stairs,        # 1
-            self.pat_tunnel,        # 2
-            self.pat_pillars,       # 3
-            self.pat_saw_trap       # 4
+            self.pat_simple_mix,
+            self.pat_stairs,
+            self.pat_tunnel,
+            self.pat_pillars,
+            self.pat_saw_trap
         ]
         
         weights = [25, 15, 15, 20, 25]
@@ -182,7 +176,6 @@ class ObstacleGenerator:
         end_x = patterns[idx](start_x)
         self.next_spawn_x = end_x
 
-    # --- PATTERNS ---
     def pat_simple_mix(self, x):
         count = random.choice([1, 2, 3])
         current_x = x
@@ -237,10 +230,8 @@ class ImpossibleGameEnv(gym.Env):
         super().__init__()
         self.render_mode = render_mode
         self.max_steps = max_steps
-        self.action_space = spaces.Discrete(2) # 0 = Run, 1 = Jump
+        self.action_space = spaces.Discrete(2)
         
-        # --- FIX IMPORTANT: OBS DIMENSIONS ---
-        # LIDAR 2D: Avem nevoie de Tip (Ce e?) + Inaltime (Unde e?)
         self.num_scans = int(LIDAR_RANGE / LIDAR_RES)
         self.obs_dim = 3 + (self.num_scans * 2) 
         
@@ -283,29 +274,23 @@ class ImpossibleGameEnv(gym.Env):
         
         terminated = False
         
-        # 1. REWARD MODIFICAT (Anti-Farming)
-        # Recompensa ceva mai mare pentru supraviețuire (0.01 -> 0.05)
         reward = 0.05 
         
-        # --- COLLISION LOGIC ---
         player_rect = self.player.rect
         hitbox = player_rect.inflate(-10, -10) 
         
         for obs in self.generator.obstacles:
             if hitbox.colliderect(obs.rect):
                 if obs.type in ["platform", "block"]:
-                    # Daca cadem pe ea (vel_y pozitiva) si suntem deasupra
                     if self.player.vel_y >= 0 and self.player.rect.bottom <= obs.rect.top + 18:
                          self.player.y = obs.rect.top - PLAYER_SIZE
                          self.player.vel_y = 0
                          self.player.on_ground = True
                     else:
-                         # 2. PENALIZARE MAI BLANDA PENTRU MOARTE (-50 -> -10)
                          terminated = True; reward = -10.0
                 elif obs.type in ["spike", "saw"]:
                     terminated = True; reward = -10.0
         
-        # 3. BONUS MARE PENTRU OBSTACOLE DEPASITE (+5 -> +10)
         if not terminated:
             player_front_x = self.player.x
             for obs in self.generator.obstacles:
@@ -321,12 +306,10 @@ class ImpossibleGameEnv(gym.Env):
     def _get_observation(self):
         obs = np.zeros(self.obs_dim, dtype=np.float32)
         
-        # 1. Info Player
         obs[0] = self.player.y / HEIGHT
         obs[1] = self.player.vel_y / 20.0
         obs[2] = 1.0 if self.player.on_ground else -1.0
         
-        # 2. LIDAR 2D (Type + Height)
         start_type = 3
         start_height = 3 + self.num_scans
         
@@ -361,19 +344,16 @@ class ImpossibleGameEnv(gym.Env):
         if self.render_mode == "human":
             self.screen.blit(self.bg_surface, (0, 0))
             
-            # 1. Ground & Glow
             glow = pygame.Surface((WIDTH, 10), pygame.SRCALPHA)
             pygame.draw.rect(glow, (*GROUND_LINE, 50), (0, 0, WIDTH, 10))
             self.screen.blit(glow, (0, GROUND_HEIGHT - 5))
             pygame.draw.line(self.screen, GROUND_LINE, (0, GROUND_HEIGHT), (WIDTH, GROUND_HEIGHT), 3)
             pygame.draw.rect(self.screen, GROUND_FILL, (0, GROUND_HEIGHT+2, WIDTH, HEIGHT-GROUND_HEIGHT))
             
-            # 2. Draw Game Objects
             self.player.draw(self.screen)
             for obs in self.generator.obstacles:
                 obs.draw(self.screen)
                 
-            # --- 3. HUD / RADAR (Stânga Sus) ---
             panel_w = 320
             panel_h = 100
             panel_x = 20

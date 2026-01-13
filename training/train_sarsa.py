@@ -13,7 +13,6 @@ from training.config import SARSA_CONFIG
 
 
 def train_sarsa(config=SARSA_CONFIG, render=False):
-    """Train SARSA agent (on-policy TD)."""
 
     render_mode = "human" if render else None
     env = ImpossibleGameEnv(render_mode=render_mode, max_steps=config['max_steps'])
@@ -30,22 +29,31 @@ def train_sarsa(config=SARSA_CONFIG, render=False):
     )
 
     episode_rewards = []
-    episode_lengths = []
     episode_scores = []
 
     for episode in tqdm(range(config['episodes']), desc="Training SARSA"):
         obs, info = env.reset()
         action = agent.select_action(obs, training=True)
-
         episode_reward = 0
-        episode_length = 0
         done = False
 
         while not done:
             next_obs, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated
+            
+            lidar_types = obs[3:33]
+            on_ground = int(obs[2]) == 1
+            has_nearby_danger = any(lidar_types[i] == 2 for i in range(5))
+            has_mid_danger = any(lidar_types[i] == 2 for i in range(5, 10))
+            
+            if action == 1 and on_ground:
+                if not has_nearby_danger and not has_mid_danger:
+                    reward -= 1.0
+                elif not has_nearby_danger and has_mid_danger:
+                    reward -= 0.3
+            elif action == 0 and on_ground and not has_nearby_danger:
+                reward += 0.1
 
-            # SARSA: select next action BEFORE update (on-policy)
             next_action = agent.select_action(next_obs, training=True)
 
             agent.update(obs, action, reward, next_obs, next_action, done)
@@ -53,19 +61,17 @@ def train_sarsa(config=SARSA_CONFIG, render=False):
             obs = next_obs
             action = next_action
             episode_reward += reward
-            episode_length += 1
 
             if render:
                 env.render()
 
         episode_rewards.append(episode_reward)
-        episode_lengths.append(episode_length)
         episode_scores.append(info['score'])
 
         if (episode + 1) % 100 == 0:
             avg_reward = np.mean(episode_rewards[-100:])
             avg_score = np.mean(episode_scores[-100:])
-            print(f"Episode {episode+1}: Avg Reward = {avg_reward:.2f}, Avg Score = {avg_score:.0f}, Epsilon = {agent.epsilon:.3f}")
+            print(f"Episode {episode+1}: Reward={avg_reward:.1f}, Score={avg_score:.0f}, Eps={agent.epsilon:.3f}")
 
     env.close()
 
@@ -76,7 +82,7 @@ def train_sarsa(config=SARSA_CONFIG, render=False):
     np.save('results/logs/sarsa_rewards.npy', episode_rewards)
     np.save('results/logs/sarsa_scores.npy', episode_scores)
 
-    print(f"Training complete! Saved to results/models/sarsa_agent.pkl")
+    print("Training complete")
 
     return episode_rewards, episode_scores
 
