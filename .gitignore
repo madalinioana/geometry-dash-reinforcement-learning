@@ -10,9 +10,6 @@ __pycache__/
 *$py.class
 
 # Results and logs
-results/models/*.pth
-results/models/*.pkl
-results/models/*.zip
 results/logs/*.npy
 results/plots/*.png
 results/*.csv

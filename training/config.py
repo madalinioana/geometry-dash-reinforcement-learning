@@ -13,7 +13,7 @@ SARSA_CONFIG = {
     'learning_rate': 0.2,
     'discount_factor': 0.98,
     'epsilon': 1.0,
-    'epsilon_decay': 0.9995,
+    'epsilon_decay': 0.999995,
     'epsilon_min': 0.01,
     'bins': 12,
     'episodes': 15000,
