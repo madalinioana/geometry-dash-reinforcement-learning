@@ -54,16 +54,13 @@ def plot_results():
 def demo_agent(agent_type):
     from environment import ImpossibleGameEnv
 
-    print(f"\n" + "="*60)
-    print(f"DEMO: {agent_type.upper()} AGENT")
-    print("="*60)
+    print(f"Demo {agent_type}...")
 
     env = ImpossibleGameEnv(render_mode="human", max_steps=10000)
 
     if agent_type == 'dqn':
         from agents.deep.dqn_agent import DQNAgent
         
-        print("Applying DQN Wrappers (Stack=4, Normalize)...")
         env = FrameStackWrapper(env, n_frames=4)
         env = NormalizeObservation(env)
         
@@ -102,9 +99,8 @@ def demo_agent(agent_type):
 
     try:
         agent.load(model_path)
-        print(f"Loaded: {model_path}")
     except:
-        print("Model not found. Train first.")
+        print("Model not found.")
         return
 
     try:
@@ -131,20 +127,17 @@ def demo_agent(agent_type):
             
             episodes += 1
             score = info.get('score', 0) if isinstance(info, dict) else 0
-            print(f"Episode {episodes}: Score = {score}, Reward = {total_reward:.2f}")
+            print(f"Episode {episodes}: Score={score}, Reward={total_reward:.1f}")
 
     except KeyboardInterrupt:
-        print("\nDemo ended.")
+        print("Done.")
     finally:
         env.close()
 
 def play_game():
     from environment import ImpossibleGameEnv
     
-    print("\n" + "="*60)
-    print("MANUAL PLAY MODE")
-    print("Controls: SPACE, UP, or W to Jump")
-    print("="*60)
+    print("Manual play. SPACE/UP/W to jump.")
 
     env = ImpossibleGameEnv(render_mode="human", max_steps=10000)
     env.reset()
@@ -163,11 +156,11 @@ def play_game():
             env.render()
             
             if terminated or truncated:
-                print(f"CRASH! Score: {info.get('score', 0)}")
+                print(f"Score: {info.get('score', 0)}")
                 env.reset()
                 
     except KeyboardInterrupt:
-        print("\nPlay ended.")
+        print("Done.")
     finally:
         env.close()
 
