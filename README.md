@@ -1,79 +1,69 @@
-# RL Geometry Dash
+# Geometry Dash Reinforcement Learning
 
-Reinforcement Learning agents trained to play a Geometry Dash style game.
+This project implements and compares multiple reinforcement learning algorithms to master a Geometry Dash style platformer game.
 
-## Setup
+## Overview
 
-```bash
-pip install -r requirements.txt
-```
+The goal is to train autonomous agents to navigate through obstacle courses by learning optimal jumping strategies. The environment features dynamic obstacles, scoring systems and increasing difficulty that challenges different RL approaches.
 
-## Usage
+## Results
 
-### Play manually
+The DQN agent achieved the best overall performance after 30,000 training episodes, successfully navigating complex obstacle patterns with consistent high scores.
 
-```bash
-python main.py --play
-```
+## Approach
 
-Controls: SPACE to jump
+I experimented with four different reinforcement learning algorithms:
 
-### Train agents
+**Q-Learning**: A tabular, off-policy method serving as the baseline. Uses discrete state-action value functions for decision making.
 
-```bash
-# Train all agents
-python main.py --train all
+**SARSA**: A tabular, on-policy alternative to Q-Learning. Updates policies based on actual actions taken rather than optimal actions.
 
-# Train specific agent
-python main.py --train dqn
-python main.py --train q_learning
-python main.py --train sarsa
-python main.py --train ppo
-```
+**Deep Q-Network (DQN)**: The final model using deep neural networks with experience replay and target networks. Handles the high-dimensional state space more effectively than tabular methods.
 
-### Watch trained agents
+**Proximal Policy Optimization (PPO)**: A policy gradient method with clipped objective for stable training. Directly optimizes the policy without value function approximation.
 
-```bash
-python main.py --demo dqn
-python main.py --demo q_learning
-python main.py --demo sarsa
-python main.py --demo ppo
-```
-
-### Generate plots
-
-```bash
-python main.py --plots
-```
-
-Plots saved in `results/plots/`
+The DQN agent significantly outperformed the tabular methods and demonstrated the most consistent learning progress across training episodes.
 
 ## Project Structure
 
 ```
-agents/          # RL agent implementations
-  tabular/       # Q-Learning, SARSA
-  deep/          # DQN
-  policy/        # PPO
-environment/     # Custom Gymnasium environment
-training/        # Training scripts
-evaluation/      # Evaluation and comparison
-analysis/        # Plot generation
-results/         # Saved models, logs, plots
+├── main.py                      # Entry point for training, evaluation, and demos
+├── requirements.txt             # Python dependencies
+├── agents/
+│   ├── base_agent.py           # Base agent interface
+│   ├── tabular/                # Q-Learning and SARSA implementations
+│   ├── deep/                   # DQN with experience replay
+│   └── policy/                 # PPO implementation
+├── environment/
+│   ├── geometry_dash_env.py    # Custom Gymnasium environment
+│   └── wrappers.py             # Environment wrappers
+├── training/                    # Training scripts for each agent
+├── evaluation/                  # Agent comparison and evaluation
+├── analysis/
+│   ├── plots.py                # Plotting utilities
+│   ├── visualizations.py       # Visualization generation
+│   └── statistics.py           # Statistics and metrics
+└── results/
+    ├── models/                 # Saved model checkpoints
+    ├── logs/                   # Training metrics
+    └── plots/                  # Generated visualizations
 ```
 
-## Agents Implemented
+## Usage
 
-- **Q-Learning** - Tabular, off-policy
-- **SARSA** - Tabular, on-policy
-- **DQN** - Deep Q-Network with experience replay
-- **PPO** - Proximal Policy Optimization
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-## Results
+# Train a specific agent
+python main.py --train dqn
 
-Training results and model checkpoints are saved in:
+# Watch a trained agent play
+python main.py --demo dqn
 
-- `results/models/` - Trained models
-- `results/logs/` - Training logs (.npy files)
-- `results/plots/` - Visualizations
-- `results/*.csv` - Comparison tables
+# Generate performance plots
+python main.py --plots
+
+# Play manually (SPACE to jump)
+python main.py --play
+```
