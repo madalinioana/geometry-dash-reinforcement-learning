@@ -37,8 +37,8 @@ The DQN agent significantly outperformed the tabular methods and demonstrated th
 ├── environment/
 │   ├── geometry_dash_env.py    # Custom Gymnasium environment
 │   └── wrappers.py             # Environment wrappers
-├── training/                    # Training scripts for each agent
-├── evaluation/                  # Agent comparison and evaluation
+├── training/                   # Training scripts for each agent
+├── evaluation/                 # Agent comparison and evaluation
 ├── analysis/
 │   ├── plots.py                # Plotting utilities
 │   ├── visualizations.py       # Visualization generation
