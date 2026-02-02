@@ -1,4 +1,4 @@
-# Geometry Dash Reinforcement Learning
+# Geometry Dash Reinforcement Learning Agents
 
 This project implements and compares multiple reinforcement learning algorithms to master a Geometry Dash style platformer game.
 
