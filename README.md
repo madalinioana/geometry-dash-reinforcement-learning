@@ -27,8 +27,8 @@ The DQN agent significantly outperformed the tabular methods and demonstrated th
 ## Project Structure
 
 ```
-├── main.py                      # Entry point for training, evaluation, and demos
-├── requirements.txt             # Python dependencies
+├── main.py                     # Entry point for training, evaluation and demos
+├── requirements.txt            # Python dependencies
 ├── agents/
 │   ├── base_agent.py           # Base agent interface
 │   ├── tabular/                # Q-Learning and SARSA implementations
